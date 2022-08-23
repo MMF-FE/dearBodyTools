@@ -1,17 +1,19 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <n-notification-provider>
+    <HelloWorld msg="Welcome to Your Vue.js App" />
+  </n-notification-provider>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
-
+import HelloWorld from "./components/HelloWorld.vue";
+import { NNotificationProvider } from "naive-ui";
 export default {
-  name: 'App',
+  name: "App",
   components: {
-    HelloWorld
-  }
-}
+    HelloWorld,
+    NNotificationProvider,
+  },
+};
 </script>
 
 <style>

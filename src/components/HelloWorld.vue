@@ -1,58 +1,254 @@
-<template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
-  </div>
-</template>
-
 <script>
-export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
-}
+import { defineComponent, nextTick, onMounted, reactive, ref } from "vue";
+import {
+  NConfigProvider,
+  NForm,
+  NFormItem,
+  NInput,
+  NButton,
+  NSpace,
+  NCard,
+  darkTheme,
+  useNotification,
+  NPopconfirm,
+} from "naive-ui";
+import hljs from "highlight.js/lib/core";
+import json from "highlight.js/lib/languages/json";
+hljs.registerLanguage("json", json);
+import Editor from "./QuillEditor.vue";
+import "@vueup/vue-quill/dist/vue-quill.snow.css";
+export default defineComponent({
+  components: {
+    NConfigProvider,
+    NButton,
+    NForm,
+    NFormItem,
+    NInput,
+    NSpace,
+    NCard,
+    NPopconfirm,
+    Editor,
+  },
+  setup() {
+    const formRef = ref(null);
+    const copyCode = ref("");
+    const notification = useNotification();
+    const loading = ref(false);
+    const code = reactive({
+      list: [{ title: "", content: "" }],
+    });
+    const removeItem = (index) => {
+      code.list.splice(index, 1);
+    };
+
+    const addItem = () => {
+      code.list.push({ title: "", content: "" });
+    };
+
+    const handleValidateClick = () => {
+      formRef.value?.validate((errors) => {
+        if (!errors) {
+          console.log("验证通过");
+          copyTextToClipboard();
+        } else {
+          console.log(errors);
+          notification.error({
+            title: "error",
+            content: "Please enter the content in the red box",
+            duration: 2500,
+            keepAliveOnHover: true,
+          });
+        }
+      });
+    };
+    const copyTextToClipboard = () => {
+      const text = JSON.stringify(code);
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.setAttribute("value", text);
+      input.select();
+      if (document.execCommand("copy")) {
+        document.execCommand("copy");
+        console.log(notification, ">>>");
+        notification.success({
+          title: "success",
+          content: "Copy success",
+          duration: 2500,
+          keepAliveOnHover: true,
+        });
+      } else {
+        console.error("复制失败");
+      }
+      document.body.removeChild(input);
+    };
+    const handlePositiveClick = async () => {
+      loading.value = true;
+      try {
+        formRef.value.restoreValidation();
+        const copy = JSON.parse(copyCode.value);
+        code.list = copy.list;
+        notification.success({
+          title: "success",
+          content: "Covered success",
+          duration: 2500,
+          keepAliveOnHover: true,
+        });
+      } catch (error) {
+        console.log(error);
+      }
+      await nextTick();
+      loading.value = false;
+    };
+    onMounted(() => {});
+
+    return {
+      code,
+      formRef,
+      darkTheme,
+      theme: ref(null),
+      hljs,
+      removeItem,
+      addItem,
+      handleValidateClick,
+      copyTextToClipboard,
+      copyCode,
+      loading,
+      handlePositiveClick,
+      handleNegativeClick() {
+        console.log("false");
+      },
+    };
+  },
+});
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h3 {
-  margin: 40px 0 0;
+<template>
+  <n-config-provider :theme="theme" :hljs="hljs">
+    <n-card
+      title="actions"
+      class="card-actions"
+      :segmented="{
+        content: true,
+        footer: 'soft',
+      }"
+    >
+      <div class="actions">
+        <n-popconfirm
+          @positive-click="handlePositiveClick"
+          @negative-click="handleNegativeClick"
+        >
+          <template #trigger>
+            <n-button attr-type="button" type="warning">
+              Covered code
+            </n-button>
+          </template>
+          <n-input
+            class="input"
+            v-model:value="copyCode"
+            type="textarea"
+            clearable
+          />
+        </n-popconfirm>
+        <n-button
+          attr-type="button"
+          type="success"
+          @click="handleValidateClick"
+        >
+          copy code
+        </n-button>
+        <n-button attr-type="button" type="info" @click="addItem">
+          add item
+        </n-button>
+      </div>
+    </n-card>
+    <!-- <pre>{{ JSON.stringify(code, null, 2) }}</pre> -->
+    <n-form ref="formRef" class="flex-warp" :model="code">
+      <n-space class="form-warp" align="start">
+        <template v-for="(item, index) in code.list" :key="index">
+          <n-card
+            :title="`content${index + 1}`"
+            class="card"
+            :segmented="{
+              content: true,
+              footer: 'soft',
+            }"
+          >
+            <template #action>
+              <n-button
+                style="margin-left: 12px"
+                type="error"
+                @click="removeItem(index)"
+              >
+                delete
+              </n-button>
+            </template>
+            <n-form-item
+              :label="`Please enter title${index + 1}`"
+              :path="`list[${index}].title`"
+              :rule="{
+                required: true,
+                message: `Please enter title${index + 1}`,
+                trigger: ['input', 'blur'],
+              }"
+            >
+              <n-input class="input" v-model:value="item.title" clearable />
+            </n-form-item>
+            <n-form-item
+              :label="`Please enter content${index + 1}`"
+              :path="`list[${index}].content`"
+              :rule="{
+                required: true,
+                message: `Please enter content${index + 1}`,
+                trigger: ['input', 'blur'],
+              }"
+            >
+              <div class="input" v-if="!this.loading">
+                <Editor v-model:value="item.content" />
+              </div>
+            </n-form-item>
+          </n-card>
+        </template>
+      </n-space>
+    </n-form>
+  </n-config-provider>
+</template>
+
+<style>
+.flex-warp {
+  display: flex;
+  justify-items: center;
+  align-content: flex-start;
+  flex-wrap: wrap;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
+.flex-copy-json {
+  flex: 1;
+  margin-right: 20px;
+  text-align: left;
 }
-li {
-  display: inline-block;
-  margin: 0 10px;
+.dynamic-warp {
+  width: 680px;
+  margin: auto;
 }
-a {
-  color: #42b983;
+.input {
+  width: 100%;
+  text-align: left;
+}
+.card {
+  width: 640px;
+}
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+  margin: 30px;
+}
+.card-actions {
+  width: 640px;
+  margin-bottom: 30px;
+  display: flex;
+  justify-content: space-between;
+}
+.flex-warp {
+  margin-bottom: 60px;
 }
 </style>
