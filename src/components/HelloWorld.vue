@@ -33,7 +33,29 @@ export default defineComponent({
   },
   setup() {
     const formRef = ref(null);
+    const showFont = ref(false);
     const copyCode = ref("");
+    const fontText = ref("");
+    const fontList = ref([
+      "SuisseIntl-Black",
+      "SuisseIntl-BlackItalic",
+      "SuisseIntl-Bold",
+      "SuisseIntl-Book",
+      "SuisseIntl-BoldItalic",
+      "SuisseIntl-BookItalic",
+      "SuisseIntl-Light",
+      "SuisseIntl-LightItalic",
+      "SuisseIntl-Medium",
+      "SuisseIntl-MediumItalic",
+      "SuisseIntl-Regular",
+      "SuisseIntl-SemiBold",
+      "SuisseIntl-RegularItalic",
+      "SuisseIntl-SemiBoldItalic",
+      "SuisseIntl-Thin",
+      "SuisseIntl-ThinItalic",
+      "SuisseIntl-UltraLightItalic",
+      "SuisseIntl-UltraLight",
+    ]);
     const notification = useNotification();
     const loading = ref(false);
     const code = reactive({
@@ -62,6 +84,24 @@ export default defineComponent({
           });
         }
       });
+    };
+    const copyFont = (item) => {
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.setAttribute("value", `'font-family':${item}`);
+      input.select();
+      if (document.execCommand("copy")) {
+        document.execCommand("copy");
+        notification.success({
+          title: "success",
+          content: "Copy success",
+          duration: 2500,
+          keepAliveOnHover: true,
+        });
+      } else {
+        console.error("复制失败");
+      }
+      document.body.removeChild(input);
     };
     const copyTextToClipboard = () => {
       const text = JSON.stringify(code);
@@ -114,7 +154,11 @@ export default defineComponent({
       handleValidateClick,
       copyTextToClipboard,
       copyCode,
+      copyFont,
       loading,
+      fontText,
+      fontList,
+      showFont,
       handlePositiveClick,
     };
   },
@@ -156,9 +200,38 @@ export default defineComponent({
           >
             add item
           </n-button>
+          <n-button
+            class="slider-left slider-bottom"
+            attr-type="button"
+            type="info"
+            @click="showFont = !showFont"
+          >
+            {{ showFont ? "show" : "hide" }} font list
+          </n-button>
         </div>
       </div>
       <n-scrollbar style="max-height: 100vh" trigger="none">
+        <div class="font-warp" v-if="showFont">
+          <n-input
+            class="input"
+            type="textarea"
+            v-model:value="fontText"
+            clearable
+          />
+          <div class="font-list">
+            <div
+              class="font-li"
+              v-for="(item, index) in fontList"
+              :key="index"
+              :style="{
+                fontFamily: item,
+              }"
+              @click="copyFont(item)"
+            >
+              {{ fontText }}
+            </div>
+          </div>
+        </div>
         <!-- <pre>{{ JSON.stringify(code, null, 2) }}</pre> -->
         <n-form ref="formRef" class="flex-warp" :model="code">
           <n-space class="form-warp" align="start">
@@ -253,6 +326,7 @@ export default defineComponent({
   min-height: 100vh;
   height: 100%;
   display: flex;
+  position: relative;
 }
 .actions {
   display: flex;
@@ -270,5 +344,30 @@ export default defineComponent({
 }
 .slider-left {
   margin-top: 30px;
+}
+.slider-bottom {
+  width: 86%;
+  position: absolute;
+  bottom: 10px;
+}
+.font-warp {
+  text-align: left;
+  padding: 20px;
+}
+.font-warp .input {
+  max-width: 80%;
+}
+.font-list {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(6, 16%);
+  grid-column-gap: 12px;
+  grid-row-gap: 32px;
+}
+.font-li {
+  padding: 20px;
+  background: #dedede;
+  color: #000;
+  cursor: pointer;
 }
 </style>
